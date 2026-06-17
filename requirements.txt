@@ -1,0 +1,7 @@
+echo "yfinance
+pandas
+ta
+requests
+beautifulsoup4
+python-telegram-bot
+schedule" > requirements.txt
