@@ -1,9 +1,9 @@
 import sys
 import schedule
 import time
+import datetime
 from scanner import run_scan
 from notify  import send, format_message
-import datetime
 
 def scan_israel():
     print("סריקת בוקר - ת\"א 125...")
@@ -24,18 +24,16 @@ def scan_usa():
     send(msg)
 
 if __name__ == "__main__":
-    # הרצה מ-Task Scheduler עם פרמטר
-    if "--job" in sys.argv:
-        job = sys.argv[sys.argv.index("--job") + 1]
-        if job == "israel":
-            scan_israel()
-        elif job == "usa":
-            scan_usa()
-        sys.exit(0)
+    print("✅ סורק מניות פעיל!")
 
-    # הרצה ידנית — מריץ לפי שעה
-    hour = datetime.datetime.now().hour
-    if hour < 12:
-        scan_israel()
-    else:
-        scan_usa()
+    # תזמון יומי
+    schedule.every().day.at("08:30").do(scan_israel)
+    schedule.every().day.at("15:45").do(scan_usa)
+
+    print("   08:30 — ת\"א 125")
+    print("   15:45 — נאסד\"ק + S&P")
+
+    # לולאה אינסופית — שומרת את התוכנה פעילה
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
