@@ -18,13 +18,21 @@ CHAT_ID = "840664684"
 def scan_israel():
     print("סריקת בוקר - ת\"א 125...")
     recs = run_scan("IL")
-    msg  = "🇮🇱 08:30 — המלצות לפני פתיחת ת\"א 125\n\n" + format_message(recs) if recs else "🇮🇱 אין המלצות היום"
+    top = [r for r in recs if r["score"] >= 90]
+    if top:
+        msg = "🇮🇱 08:30 — מניות עם ציון 90+ בת\"א\n\n" + format_message(top)
+    else:
+        msg = "🇮🇱 08:30 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def scan_usa():
     print("סריקה - לפני פתיחת ארה\"ב...")
     recs = run_scan("US")
-    msg  = "🇺🇸 15:45 — המלצות לפני וול סטריט\n\n" + format_message(recs) if recs else "🇺🇸 אין המלצות היום"
+    top = [r for r in recs if r["score"] >= 90]
+    if top:
+        msg = "🇺🇸 15:45 — מניות עם ציון 90+ בארה\"ב\n\n" + format_message(top)
+    else:
+        msg = "🇺🇸 15:45 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def run_scheduler():
