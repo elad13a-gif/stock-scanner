@@ -37,17 +37,16 @@ def run_scheduler():
 
 # ─── בוט טלגרם ────────────────────────────────────────
 def search_ticker(query):
+    import json, os
+    key = query.lower().strip()
     try:
-        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&lang=en&region=US&quotesCount=5&newsCount=0"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = req.get(url, headers=headers, timeout=8)
-        quotes = r.json().get("quotes", [])
-        for q in quotes:
-            if q.get("quoteType") in ("EQUITY","ETF"):
-                return q.get("symbol"), q.get("longname") or q.get("shortname","")
+        with open("stock_names.json", "r", encoding="utf-8") as f:
+            names = json.load(f)
+        if key in names:
+            return names[key], names[key]
     except:
         pass
-    return None, None
+    return query.upper(), None
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
