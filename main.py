@@ -36,13 +36,12 @@ def scan_usa():
     send(msg)
 
 def run_scheduler():
-  schedule.every().day.at("07:00").do(scan_israel)  # 10:00 ישראל
-  schedule.every().day.at("13:00").do(scan_usa)      # 16:00 ישראל
-    print("✅ סורק פעיל! 07:00 ת\"א | 13:00 ארה\"ב")
+    schedule.every().day.at("07:00").do(scan_israel)  # 10:00 ישראל
+    schedule.every().day.at("13:00").do(scan_usa)      # 16:00 ישראל
+    print("✅ סורק פעיל! 10:00 ת\"א | 16:00 ארה\"ב")
     while True:
         schedule.run_pending()
         time.sleep(60)
-
 # ─── בוט טלגרם ────────────────────────────────────────
 def search_ticker(query):
     import json, os
