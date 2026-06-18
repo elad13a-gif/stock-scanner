@@ -283,7 +283,7 @@ STOCK_NAMES = {
     "crnt":"CRNT.TA","קרנט":"CRNT.TA","ceragon":"CRNT.TA",
     "nvmi":"NVMI.TA","נובה":"NVMI.TA","nova":"NVMI.TA",
     "rdrd":"RDRD.TA","רד-רד":"RDRD.TA",
-    "tsem":"TSEM.TA","טאוור":"TSEM.TA","tower":"TSEM.TA","tower semiconductor":"TSEM.TA","טאוור סמיקונדקטור":"TSEM.TA",
+    "tsem":"TSEM.TA","טאוור":"TSEM.TA","טאואר":"TSEM.TA","tower":"TSEM.TA","tower semiconductor":"TSEM.TA","טאוור סמיקונדקטור":"TSEM.TA",
     "smdr":"SMDR.TA","סמדר":"SMDR.TA",
     "skbn":"SKBN.TA","סקייליין":"SKBN.TA",
     "prgo":"PRGO.TA","פרגו":"PRGO.TA","perrigo":"PRGO.TA",
