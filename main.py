@@ -20,9 +20,9 @@ def scan_israel():
     recs = run_scan("IL")
     top = [r for r in recs if r["score"] >= 90]
     if top:
-        msg = "🇮🇱 08:30 — מניות עם ציון 90+ בת\"א\n\n" + format_message(top)
+        msg = "🇮🇱 07:00 — מניות עם ציון 90+ בת\"א\n\n" + format_message(top)
     else:
-        msg = "🇮🇱 08:30 — אין מניות עם ציון 90+ היום"
+        msg = "🇮🇱 07:00 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def scan_usa():
@@ -30,15 +30,15 @@ def scan_usa():
     recs = run_scan("US")
     top = [r for r in recs if r["score"] >= 90]
     if top:
-        msg = "🇺🇸 15:45 — מניות עם ציון 90+ בארה\"ב\n\n" + format_message(top)
+        msg = "🇺🇸 13:00 — מניות עם ציון 90+ בארה\"ב\n\n" + format_message(top)
     else:
-        msg = "🇺🇸 15:45 — אין מניות עם ציון 90+ היום"
+        msg = "🇺🇸 13:00 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def run_scheduler():
-    schedule.every().day.at("08:30").do(scan_israel)
-    schedule.every().day.at("15:45").do(scan_usa)
-    print("✅ סורק פעיל! 08:30 ת\"א | 15:45 ארה\"ב")
+  schedule.every().day.at("07:00").do(scan_israel)  # 10:00 ישראל
+  schedule.every().day.at("13:00").do(scan_usa)      # 16:00 ישראל
+    print("✅ סורק פעיל! 07:00 ת\"א | 13:00 ארה\"ב")
     while True:
         schedule.run_pending()
         time.sleep(60)
