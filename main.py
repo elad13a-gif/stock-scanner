@@ -20,9 +20,9 @@ def scan_israel():
     recs = run_scan("IL")
     top = [r for r in recs if r["score"] >= 90]
     if top:
-        msg = "🇮🇱 07:00 — מניות עם ציון 90+ בת\"א\n\n" + format_message(top)
+        msg = "🇮🇱 10:00 — מניות עם ציון 90+ בת\"א\n\n" + format_message(top)
     else:
-        msg = "🇮🇱 07:00 — אין מניות עם ציון 90+ היום"
+        msg = "🇮🇱 10:00 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def scan_usa():
@@ -30,18 +30,35 @@ def scan_usa():
     recs = run_scan("US")
     top = [r for r in recs if r["score"] >= 90]
     if top:
-        msg = "🇺🇸 13:00 — מניות עם ציון 90+ בארה\"ב\n\n" + format_message(top)
+        msg = "🇺🇸 16:00 — מניות עם ציון 90+ בארה\"ב\n\n" + format_message(top)
     else:
-        msg = "🇺🇸 13:00 — אין מניות עם ציון 90+ היום"
+        msg = "🇺🇸 16:00 — אין מניות עם ציון 90+ היום"
     send(msg)
 
 def run_scheduler():
-    schedule.every().day.at("07:00").do(scan_israel)  # 10:00 ישראל
-    schedule.every().day.at("13:00").do(scan_usa)      # 16:00 ישראל
+    import pytz
+    from datetime import datetime
+
+    tz = pytz.timezone("Asia/Jerusalem")
+
+    def check_and_run():
+        now     = datetime.now(tz)
+        hour    = now.hour
+        minute  = now.minute
+        weekday = now.weekday()
+
+        if weekday >= 5:
+            return
+        if hour == 10 and minute == 0:
+            scan_israel()
+        if hour == 16 and minute == 0:
+            scan_usa()
+
+    schedule.every().minute.do(check_and_run)
     print("✅ סורק פעיל! 10:00 ת\"א | 16:00 ארה\"ב")
     while True:
         schedule.run_pending()
-        time.sleep(60)
+        time.sleep(30)
 # ─── בוט טלגרם ────────────────────────────────────────
 def search_ticker(query):
     import json, os
