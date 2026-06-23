@@ -5,15 +5,16 @@ import requests
 import json
 from scanner import run_scan
 from notify import send, format_message
+from tracker import add_recommendation, run_tracker
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from scanner import analyze, tech_score, position, get_maya_events, STOP_LOSS, TARGET
 import pytz
 from datetime import datetime
- 
+
 TOKEN   = "8931673908:AAEAkLdaMDSobsY8VOO8gOsTPZzf7mBLy2E"
 CHAT_ID = "840664684"
- 
+
 # ══════════════════════════════════════════════════════
 # מילון שמות מניות — מובנה בקוד, לא תלוי בקובץ חיצוני
 # ══════════════════════════════════════════════════════
@@ -283,7 +284,7 @@ STOCK_NAMES = {
     "crnt":"CRNT.TA","קרנט":"CRNT.TA","ceragon":"CRNT.TA",
     "nvmi":"NVMI.TA","נובה":"NVMI.TA","nova":"NVMI.TA",
     "rdrd":"RDRD.TA","רד-רד":"RDRD.TA",
-    "tsem":"TSEM.TA","טאוור":"TSEM.TA","טאואר":"TSEM.TA","tower":"TSEM.TA","tower semiconductor":"TSEM.TA","טאוור סמיקונדקטור":"TSEM.TA",
+    "tsem":"TSEM.TA","טאוור":"TSEM.TA","tower":"TSEM.TA","tower semiconductor":"TSEM.TA","טאוור סמיקונדקטור":"TSEM.TA",
     "smdr":"SMDR.TA","סמדר":"SMDR.TA",
     "skbn":"SKBN.TA","סקייליין":"SKBN.TA",
     "prgo":"PRGO.TA","פרגו":"PRGO.TA","perrigo":"PRGO.TA",
@@ -363,7 +364,7 @@ STOCK_NAMES = {
     "rafael":"RFEL.TA","רפאל":"RFEL.TA",
     "clal":"CLLI.TA","כלל":"CLLI.TA","כלל ביטוח":"CLLI.TA",
 }
- 
+
 # ─── סריקות ───────────────────────────────────────────
 def scan_israel():
     print("🇮🇱 סריקת ת\"א 125...")
@@ -372,12 +373,13 @@ def scan_israel():
         top  = [r for r in recs if r["score"] >= 90]
         if top:
             msg = "🇮🇱 10:00 — מניות עם ציון 90+\n\n" + format_message(top)
+            add_recommendation(top)
         else:
             msg = "🇮🇱 10:00 — אין מניות עם ציון 90+ היום"
         send(msg)
     except Exception as e:
         print(f"שגיאה: {e}")
- 
+
 def scan_usa():
     print("🇺🇸 סריקת ארה\"ב...")
     try:
@@ -385,15 +387,16 @@ def scan_usa():
         top  = [r for r in recs if r["score"] >= 90]
         if top:
             msg = "🇺🇸 16:00 — מניות עם ציון 90+\n\n" + format_message(top)
+            add_recommendation(top)
         else:
             msg = "🇺🇸 16:00 — אין מניות עם ציון 90+ היום"
         send(msg)
     except Exception as e:
         print(f"שגיאה: {e}")
- 
+
 def run_scheduler():
     tz = pytz.timezone("Asia/Jerusalem")
- 
+
     def check_and_run():
         now     = datetime.now(tz)
         hour    = now.hour
@@ -405,32 +408,32 @@ def run_scheduler():
             scan_israel()
         if hour == 16 and minute == 0:
             scan_usa()
- 
+
     schedule.every().minute.do(check_and_run)
     print("✅ סורק פעיל! 10:00 ת\"א | 16:00 ארה\"ב")
     while True:
         schedule.run_pending()
         time.sleep(30)
- 
+
 # ─── בוט טלגרם ────────────────────────────────────────
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     key  = text.lower().strip()
- 
+
     await update.message.reply_text(f"🔍 מחפש את '{text}'...")
- 
+
     # חיפוש במילון המובנה
     ticker = STOCK_NAMES.get(key) or STOCK_NAMES.get(text.upper())
     if not ticker:
         ticker = text.upper()
- 
+
     # ניתוח
     data = analyze(ticker)
     if not data and not ticker.endswith(".TA"):
         data = analyze(ticker + ".TA")
         if data:
             ticker = ticker + ".TA"
- 
+
     if not data:
         await update.message.reply_text(
             f"❌ לא מצאתי את '{text}'\n\n"
@@ -439,7 +442,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"או: נווידיה, טבע, אפל"
         )
         return
- 
+
     ts     = tech_score(data)
     maya   = get_maya_events(ticker) if ".TA" in ticker else []
     if maya: ts += 10
@@ -454,15 +457,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cap    = data.get("market_cap", 0)
     cap_str = f"{cap/1_000_000_000:.1f}B" if cap >= 1_000_000_000 else \
               f"{cap/1_000_000:.0f}M"      if cap >= 1_000_000      else "—"
- 
+
     if score >= 80:   rec = "קנייה חזקה ✅✅"
     elif score >= 65: rec = "כניסה ✅"
     elif score >= 50: rec = "שמור על הגדר ⚠️"
     else:             rec = "אל תיכנס ❌"
- 
+
     maya_line = f"\n📢 המאיה: {', '.join(maya)}" if maya else ""
     name      = ticker.replace(".TA","")
- 
+
     msg = (
         f"📊 {name}\n\n"
         f"המלצה: {rec}\n"
@@ -481,12 +484,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"לא המלצת השקעה — לצורכי לימוד בלבד"
     )
     await update.message.reply_text(msg)
- 
+
 # ─── הרצה ראשית ───────────────────────────────────────
 if __name__ == "__main__":
     print("✅ מערכת סורק מניות מופעלת!")
-    t = threading.Thread(target=run_scheduler, daemon=True)
-    t.start()
+    t1 = threading.Thread(target=run_scheduler, daemon=True)
+    t1.start()
+    t2 = threading.Thread(target=run_tracker, daemon=True)
+    t2.start()
     app = Application.builder().token(TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("✅ בוט טלגרם פעיל!")
