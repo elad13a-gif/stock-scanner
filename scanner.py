@@ -1,125 +1,106 @@
+Y
 import yfinance as yf
 import pandas as pd
 import ta
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
-
+ 
 STOP_LOSS = 0.03
 TARGET    = 0.05
-
-# ─── שאיבת מניות חמות מהרשת ───────────────────────────
-def fetch_hot_tickers_us():
-    """
-    שואב מניות חמות מ-Finviz ו-Yahoo Finance
-    מחזיר רשימה של סימולים
-    """
-    tickers = set()
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    # מקור 1 — Finviz: מניות עם עלייה חזקה ונפח גבוה היום
-    try:
-        url  = "https://finviz.com/screener.ashx?v=111&s=ta_topgainers&f=sh_price_o5,sh_vol_o500"
-        r    = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for a in soup.find_all("a", class_="screener-link-primary"):
-            tickers.add(a.text.strip())
-        print(f"  Finviz gainers: {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  Finviz שגיאה: {e}")
-
-    # מקור 2 — Finviz: מניות עם נפח חריג
-    try:
-        url  = "https://finviz.com/screener.ashx?v=111&s=ta_unusualvolume&f=sh_price_o5"
-        r    = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for a in soup.find_all("a", class_="screener-link-primary"):
-            tickers.add(a.text.strip())
-        print(f"  Finviz volume: סה\"כ {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  Finviz volume שגיאה: {e}")
-
-    # מקור 3 — Yahoo Finance: מניות מובילות
-    try:
-        urls = [
-            "https://finance.yahoo.com/gainers",
-            "https://finance.yahoo.com/most-active",
-        ]
-        for url in urls:
-            r    = requests.get(url, headers=headers, timeout=10)
-            soup = BeautifulSoup(r.text, "html.parser")
-            for a in soup.find_all("a", attrs={"data-testid": "table-cell-ticker"}):
-                tickers.add(a.text.strip())
-        print(f"  Yahoo Finance: סה\"כ {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  Yahoo שגיאה: {e}")
-
-    # מקור 4 — Finviz: מניות בפריצת שיא
-    try:
-        url  = "https://finviz.com/screener.ashx?v=111&s=ta_newhigh&f=sh_price_o5"
-        r    = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for a in soup.find_all("a", class_="screener-link-primary"):
-            tickers.add(a.text.strip())
-        print(f"  Finviz new highs: סה\"כ {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  Finviz highs שגיאה: {e}")
-
-    result = [t for t in tickers if t and len(t) <= 5 and t.isalpha()]
-    print(f"\n  ✅ סה\"כ {len(result)} מניות ארה\"ב לסריקה")
-    return result
-
-
-def fetch_hot_tickers_il():
-    """
-    שואב מניות חמות מהמאיה ומבורסת ת"א
-    """
-    tickers = set()
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    # מקור 1 — המאיה: מניות עם אירועי חדשות
-    try:
-        url  = "https://maya.tase.co.il/reports/company"
-        r    = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for tag in soup.find_all(["span","div","td"], class_=lambda c: c and "symbol" in c.lower()):
-            t = tag.text.strip()
-            if t:
-                tickers.add(t + ".TA")
-        print(f"  המאיה: {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  המאיה שגיאה: {e}")
-
-    # מקור 2 — Yahoo Finance ת"א: מניות מובילות
-    try:
-        url  = "https://finance.yahoo.com/quote/%5ETA125.TA/components"
-        r    = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for a in soup.find_all("a", attrs={"data-testid": "table-cell-ticker"}):
-            t = a.text.strip()
-            if not t.endswith(".TA"):
-                t += ".TA"
-            tickers.add(t)
-        print(f"  Yahoo ת\"א: סה\"כ {len(tickers)} מניות")
-    except Exception as e:
-        print(f"  Yahoo ת\"א שגיאה: {e}")
-
-    # ─── רזרבה: רשימת ליבה של ת"א 125 ────────────────
-    core_il = [
-        "TEVA.TA","NICE.TA","CHKP.TA","MNDY.TA","WIX.TA","GLBE.TA",
-        "ICL.TA","ESLT.TA","AMOT.TA","MGDL.TA","HARL.TA","PHOE.TA",
-        "DSCT.TA","LUMI.TA","POLI.TA","MZRH.TA","FIBI.TA","ITRN.TA",
-        "ENLT.TA","SPEN.TA","CAMT.TA","CRNT.TA","NVMI.TA","RDRD.TA",
-        "TSEM.TA","SMDR.TA","SKBN.TA","PRGO.TA","GILT.TA","STRS.TA",
-    ]
-    for t in core_il:
-        tickers.add(t)
-
-    result = list(tickers)
-    print(f"\n  ✅ סה\"כ {len(result)} מניות ת\"א לסריקה")
-    return result
-
-
+ 
+# ══ נאסד"ק 100 — רשימה רשמית יוני 2026 ══
+WATCHLIST_NASDAQ = [
+    "NVDA","AAPL","MSFT","AMZN","GOOGL","GOOG","AVGO","TSLA","META","MU",
+    "WMT","AMD","ASML","INTC","LRCX","AMAT","CSCO","ARM","COST","KLAC",
+    "SNDK","NFLX","TXN","PLTR","MRVL","WDC","STX","LIN","QCOM","PANW",
+    "ADI","TMUS","PEP","AMGN","CRWD","APP","GILD","HON","ISRG","SHOP",
+    "BKNG","VRTX","SBUX","PDD","CDNS","FTNT","MAR","CEG","MNST","SNPS",
+    "CSX","ADP","ABNB","NXPI","MELI","CMCSA","DDOG","ADBE","MDLZ","ROST",
+    "MPWR","ALAB","DASH","NBIS","TER","ORLY","AEP","INTU","LITE","CTAS",
+    "WBD","REGN","PCAR","RKLB","CRWV","BKR","MCHP","FAST","FANG","EA",
+    "FER","XEL","EXC","ODFL","TTWO","IDXX","CCEP","KDP","ADSK","MSTR",
+    "ALNY","PYPL","PAYX","TRI","AXON","ROP","WDAY","GEHC","CPRT","DXCM",
+    "KHC",
+]
+ 
+# ══ S&P 500 — רשימה רשמית יוני 2026 ══
+WATCHLIST_SP500 = [
+    "NVDA","AAPL","MSFT","AMZN","GOOGL","GOOG","AVGO","TSLA","META","MU",
+    "BRK.B","LLY","WMT","JPM","AMD","INTC","V","XOM","JNJ","ORCL",
+    "LRCX","AMAT","CSCO","CAT","MA","COST","ABBV","BAC","GE","UNH",
+    "MS","KLAC","CVX","PG","KO","SNDK","HD","GS","NFLX","GEV",
+    "TXN","PLTR","MRK","PM","DELL","MRVL","WFC","WDC","C","STX",
+    "RTX","QCOM","LIN","PANW","IBM","AXP","ANET","ADI","APH","TMUS",
+    "PEP","MCD","VZ","AMGN","TJX","NEE","DIS","GLW","BA","CRWD",
+    "TMO","ETN","BLK","DE","SCHW","UNP","APP","GILD","T","ABT",
+    "BX","WELL","UBER","HON","PFE","ISRG","VRT","PLD","COP","CVS",
+    "BKNG","DHR","CB","COF","PGR","CRM","PH","LOW","SPGI","VRTX",
+    "SYK","MO","SBUX","LMT","HWM","BMY","EQIX","PWR","TT","NEM",
+    "SO","FTNT","CDNS","MAR","MDT","CMI","BNY","FCX","CEG","DUK",
+    "HOOD","NOW","PNC","GD","UPS","WMB","USB","MNST","JCI","CME",
+    "MCK","KKR","SNPS","ADP","WM","ELV","CSX","MMM","EMR","RCL",
+    "HCA","AMT","COHR","ABNB","NXPI","CMCSA","SHW","FDX","APO","MCO",
+    "HLT","MRSH","DDOG","MDLZ","ADBE","ITW","ROST","DASH","ECL","MPWR",
+    "CI","CRH","ICE","ACN","GM","TDG","NOC","MPC","CL","FIX",
+    "VLO","KMI","SLB","ORLY","AEP","EOG","TER","INTU","SPG","LITE",
+    "DLR","NSC","URI","CTAS","PSX","AON","WBD","TRV","MSI","BSX",
+    "NKE","HPE","REGN","GWW","KEYS","PCAR","APD","CIEN","RSG","TEL",
+    "TFC","D","SRE","CARR","AFL","TGT","BKR","ALL","O","F",
+    "DAL","PSA","VST","MET","TRGP","NUE","MCHP","FLEX","AME","OKE",
+    "AJG","FAST","ROK","LHX","COR","FANG","CTVA","CAH","OXY","ETR",
+    "ON","EA","DVN","EW","XEL","FITB","CVNA","AZO","STT","EXC",
+    "EBAY","WAB","NDAQ","ODFL","GRMN","DHI","TTWO","XYZ","IDXX","COIN",
+    "IBKR","HUM","AMP","KDP","CCL","MSCI","YUM","AIG","VTR","PEG",
+    "LYV","CMG","ED","IRM","VMC","ADSK","JBL","BDX","UAL","CBRE",
+    "EME","PRU","SYY","PYPL","WEC","MLM","PCG","CCI","ADM","STLD",
+    "A","HIG","WAT","HSY","PAYX","KVUE","HBAN","KR","KMB","MTB",
+    "ROP","AXON","NTRS","ZTS","ACGL","EQT","LVS","CNC","EXR","NTAP",
+    "CASY","EL","DOV","DTE","RJF","IR","SATS","AEE","TPR","BIIB",
+    "HAL","NRG","CFG","ARES","EXPE","TDY","FSLR","CNP","ATO","VICI",
+    "HUBB","IQV","OTIS","WDAY","EIX","GEHC","RMD","CPRT","FE","PPL",
+    "WSM","PPG","CINF","CBOE","DXCM","XYL","KHC","ES","JBHT","AVB",
+    "SYF","FISV","DG","WRB","FICO","VEEV","FDXF","KEY","STZ","AWK",
+    "RF","DRI","RL","TPL","EQR","PFG","LUV","PHM","WTW","MRNA",
+    "SW","TROW","MTD","WST","CMS","NI","SMCI","CPAY","VRSN","CHD",
+    "DOW","CHRW","L","DLTR","VRSK","FFIV","HPQ","BG","DGX","LEN",
+    "EXPD","ROL","EXE","LH","PKG","OMC","INCY","VLTO","SNA","SBAC",
+    "BRO","IP","ULTA","CTSH","TSN","IFF","STE","DD","FIS","EVRG",
+    "LNT","AMCR","FTV","LYB","LII","ALB","EFX","GPN","GIS","WY",
+    "VTRS","ESS","BEN","AKAM","NVR","HST","GNRC","ZBH","INVH","KIM",
+    "IEX","NDSN","BBY","CDW","CF","BR","TSCO","BALL","MAA","CHTR",
+    "TXT","TKO","MAS","DECK","GPC","J","REG","DOC","DVA","GEN",
+    "APTV","SWK","GL","EG","HRL","PTC","AIZ","LDOS","COO","SOLV",
+    "IVZ","ALGN","BF.B","PNW","MKC","UDR","AVY","APA","PNR","CSGP",
+    "HAS","LULU","MGM","SWKS","ZBRA","SJM","TRMB","TYL","ALLE","ERIE",
+    "CLX","RVTY","PSKY","HII","CPT","WYNN","FRT","AES","BXP","BAX",
+    "DPZ","FOX","GDDY","PODD","FOXA","NCLH","HSIC","NWSA","NWS",
+]
+ 
+# ══ ת"א 125 ══
+WATCHLIST_IL = [
+    "TEVA.TA","NICE.TA","CHKP.TA","MNDY.TA","WIX.TA","GLBE.TA",
+    "ICL.TA","ESLT.TA","AMOT.TA","MGDL.TA","HARL.TA","PHOE.TA",
+    "DSCT.TA","LUMI.TA","POLI.TA","MZRH.TA","FIBI.TA","ITRN.TA",
+    "ENLT.TA","SPEN.TA","CAMT.TA","CRNT.TA","NVMI.TA","RDRD.TA",
+    "TSEM.TA","SMDR.TA","SKBN.TA","PRGO.TA","GILT.TA","STRS.TA",
+    "ALHE.TA","AZRG.TA","BONS.TA","BWAY.TA","CPTP.TA","DGNS.TA",
+    "DORL.TA","EMTC.TA","ENRG.TA","EVGN.TA","FTAL.TA","GISH.TA",
+    "HDST.TA","ILCO.TA","ILEX.TA","ISCD.TA","KARE.TA","KRUR.TA",
+    "LSCO.TA","MGOR.TA","MISH.TA","MLSR.TA","NETO.TA","NFTA.TA",
+    "OBAS.TA","ORAD.TA","ORMP.TA","PLSN.TA","PTBL.TA","RSEL.TA",
+    "SANO.TA","SPCE.TA","SUUR.TA","TACT.TA","TDRN.TA","TLSY.TA",
+    "TZNR.TA","ULTR.TA","UNVO.TA","VTNA.TA","WLFL.TA","YAAK.TA",
+    "ADGR.TA","AICS.TA","ALLT.TA","ARAD.TA","ARYT.TA","ASHO.TA",
+    "AVIV.TA","BRAM.TA","BRIL.TA","CLIS.TA","DIFI.TA","DNYA.TA",
+    "ELCO.TA","FROG.TA","GCMT.TA","GDEV.TA","GOVN.TA","IFON.TA",
+    "IGLD.TA","INRM.TA","ISCO.TA","ISOP.TA","ISRA.TA","JBNK.TA",
+    "KMDA.TA","KNFM.TA","MCRM.TA","MGIC.TA","MIGI.TA","MNIN.TA",
+    "MRAN.TA","MSBI.TA","MTRX.TA","MVNE.TA","MZOR.TA","NILI.TA",
+    "RFEL.TA","CLLI.TA","ORAN.TA","PERI.TA",
+]
+ 
+ 
 # ─── בדיקת אירועי המאיה ───────────────────────────────
 def get_maya_events(ticker):
     events = []
@@ -140,8 +121,8 @@ def get_maya_events(ticker):
     except:
         pass
     return events
-
-
+ 
+ 
 # ─── בדיקת תנאים מיוחדים ──────────────────────────────
 def check_special_conditions(data, hist_1y):
     conditions = 0
@@ -163,8 +144,8 @@ def check_special_conditions(data, hist_1y):
     if data.get("market_cap", 0) >= 150_000_000:
         conditions += 1
     return conditions >= 3
-
-
+ 
+ 
 # ─── ניתוח טכני + פונדמנטלי ───────────────────────────
 def analyze(ticker):
     try:
@@ -194,10 +175,10 @@ def analyze(ticker):
                     "new_stock":  True,
                 }
             return None
-
+ 
         if len(df) < 20:
             return None
-
+ 
         close     = df["Close"].squeeze()
         volume    = df["Volume"].squeeze()
         price     = float(close.iloc[-1])
@@ -205,13 +186,13 @@ def analyze(ticker):
         change    = (price - prev) / prev * 100
         avg_vol   = float(volume.rolling(20).mean().iloc[-2])
         vol_ratio = float(volume.iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
-
+ 
         rsi       = ta.momentum.RSIIndicator(close, window=14).rsi().iloc[-1]
         macd      = ta.trend.MACD(close)
         macd_bull = macd.macd().iloc[-1] > macd.macd_signal().iloc[-1]
         ema20     = ta.trend.EMAIndicator(close, window=20).ema_indicator().iloc[-1]
         ema50     = ta.trend.EMAIndicator(close, window=50).ema_indicator().iloc[-1]
-
+ 
         try:
             info     = yf.Ticker(ticker).info
             pe_ratio = info.get("trailingPE") or info.get("forwardPE")
@@ -221,7 +202,7 @@ def analyze(ticker):
             pe_ratio = None
             eps      = None
             mkt_cap  = 0
-
+ 
         is_il = ".TA" in ticker
         return {
             "ticker":     ticker,
@@ -238,10 +219,10 @@ def analyze(ticker):
             "market_cap": mkt_cap,
             "new_stock":  False,
         }
-    except Exception as e:
+    except:
         return None
-
-
+ 
+ 
 # ─── ציון ─────────────────────────────────────────────
 def tech_score(data):
     if data.get("new_stock"):
@@ -262,8 +243,8 @@ def tech_score(data):
     eps = data.get("eps")
     if eps and eps > 0:   s += 5
     return min(s, 100)
-
-
+ 
+ 
 # ─── גודל פוזיציה ─────────────────────────────────────
 def position(score_val, capital):
     if score_val >= 85:   pct = 0.17
@@ -271,30 +252,31 @@ def position(score_val, capital):
     elif score_val >= 65: pct = 0.11
     else:                 pct = 0.08
     return round(capital * pct)
-
-
-# ─── סריקה מקבילית מהירה ──────────────────────────────
+ 
+ 
+# ─── סריקה מקבילית ────────────────────────────────────
 def scan_one(ticker):
     data = analyze(ticker)
     if not data:
         return None
+ 
     ts = tech_score(data)
     maya_events = []
     if ".TA" in ticker:
         maya_events = get_maya_events(ticker)
         if maya_events:
             ts += 10
+ 
+    special = False
     try:
         hist_1y = yf.download(ticker, period="1y", interval="1d",
                               progress=False, auto_adjust=True)
-        if check_special_conditions(data, hist_1y):
+        special = check_special_conditions(data, hist_1y)
+        if special:
             ts += 15
-            data["special"] = True
-        else:
-            data["special"] = False
     except:
-        data["special"] = False
-
+        pass
+ 
     s   = min(ts, 100)
     amt = position(s, data["capital"])
     return {
@@ -305,32 +287,35 @@ def scan_one(ticker):
         "stop":        round(data["price"] * (1 - STOP_LOSS), 2),
         "target":      round(data["price"] * (1 + TARGET), 2),
         "maya_events": maya_events,
-        "rec":         "כניסה ✅" if s >= 60 else "המתן ⏳",
+        "special":     special,
+        "rec":         "כניסה" if s >= 60 else "המתן",
     }
-
-
+ 
+ 
 # ─── סריקה ראשית ──────────────────────────────────────
 def run_scan(market="IL"):
     if market == "IL":
-        print("\n🇮🇱 שואב מניות חמות מת\"א...")
-        tickers = fetch_hot_tickers_il()
+        tickers = WATCHLIST_IL
+        label   = "ת\"א 125"
     elif market == "US":
-        print("\n🇺🇸 שואב מניות חמות מארה\"ב...")
-        tickers = fetch_hot_tickers_us()
+        tickers = list(dict.fromkeys(WATCHLIST_NASDAQ + WATCHLIST_SP500))
+        label   = "נאסד\"ק 100 + S&P 500"
     else:
-        print("\n🌍 שואב מניות חמות מכל השווקים...")
-        tickers = fetch_hot_tickers_us() + fetch_hot_tickers_il()
-
-    print(f"\n🔍 מנתח {len(tickers)} מניות במקביל...")
-
-    with ThreadPoolExecutor(max_workers=10) as ex:
+        tickers = list(dict.fromkeys(
+            WATCHLIST_IL + WATCHLIST_NASDAQ + WATCHLIST_SP500
+        ))
+        label = "כל השווקים"
+ 
+    print(f"\nסורק {label} — {len(tickers)} מניות...")
+ 
+    with ThreadPoolExecutor(max_workers=8) as ex:
         raw = list(ex.map(scan_one, tickers))
-
+ 
     results = [r for r in raw if r]
     results.sort(key=lambda x: x["score"], reverse=True)
     top = results[:5]
-
-    print(f"\n✅ 5 המניות המובילות:\n")
+ 
+    print(f"\n5 המניות המובילות:")
     for i, r in enumerate(top, 1):
         cur = r["currency"]
         print(f"  {i}. {r['ticker']:12s} ציון={r['score']} "
@@ -338,7 +323,8 @@ def run_scan(market="IL"):
               f"יעד={cur}{r['target']} "
               f"סטופ={cur}{r['stop']}")
     return top
-
-
+ 
+ 
 if __name__ == "__main__":
     run_scan("US")
+ 
