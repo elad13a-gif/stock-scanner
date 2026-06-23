@@ -305,12 +305,15 @@ def run_scan(market="IL"):
         ))
         label = "כל השווקים"
  
+    import time
     print(f"\nסורק {label} — {len(tickers)} מניות...")
- 
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        raw = list(ex.map(scan_one, tickers))
- 
-    results = [r for r in raw if r]
+
+    results = []
+    for ticker in tickers:
+        r = scan_one(ticker)
+        if r:
+            results.append(r)
+        time.sleep(0.3)
     results.sort(key=lambda x: x["score"], reverse=True)
     top = results[:5]
  
