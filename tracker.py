@@ -21,9 +21,9 @@ def add_recommendation(recs: list):
             "target":       r["target"],
             "currency":     r["currency"],
             "alerted":      False,
+            "rec_data":     r,  # שמירת כל הנתונים
         }
     print(f"📍 עוקב אחרי {len(TRACKED)} מניות")
-
 def get_current_price(ticker: str):
     try:
         t    = yf.Ticker(ticker)
@@ -98,12 +98,22 @@ def send_opening_update():
         name   = ticker.replace(".TA","")
         emoji  = "🟢" if change > 0 else "🔴"
         arrow  = "↑" if change > 0 else "↓"
+
+        rec = info.get("rec_data", {})
+        pe      = str(rec.get("pe_ratio","—")) if rec.get("pe_ratio") else "—"
+        eps     = str(rec.get("eps","—"))      if rec.get("eps")      else "—"
+        cap     = rec.get("market_cap", 0)
+        cap_str = f"{cap/1_000_000_000:.1f}B" if cap >= 1_000_000_000 else \
+                  f"{cap/1_000_000:.0f}M"      if cap >= 1_000_000      else "—"
+
         lines.append(
             f"{emoji} <b>{name}</b> {arrow} {change:+.1f}%\n"
-            f"   כניסה: {cur}{entry} → עכשיו: {cur}{price:.2f}"
+            f"   כניסה: {cur}{entry} → עכשיו: {cur}{price:.2f}\n"
+            f"   RSI: {rec.get('rsi','—')} | נפח: x{rec.get('vol_ratio','—')}\n"
+            f"   מכפיל רווח: {pe} | EPS: {eps} | שווי שוק: {cap_str}\n"
+            f"   יעד: {cur}{info['target']} | סטופ: {cur}{info['stop']}"
         )
     send("\n".join(lines))
-
 def run_tracker():
     print("📍 מעקב מניות פעיל")
     checked_opening_il  = False
