@@ -511,5 +511,5 @@ async def scan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("scan", scan_command))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ בוט טלגרם פעיל!")
-    app.run_polling(drop_pending_updates=True)
+print("✅ בוט טלגרם פעיל!")
+app.run_polling(drop_pending_updates=True)
