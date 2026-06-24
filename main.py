@@ -492,7 +492,24 @@ if __name__ == "__main__":
     t1.start()
     t2 = threading.Thread(target=run_tracker, daemon=True)
     t2.start()
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    from telegram.ext import CommandHandler
+
+async def scan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔍 מריץ סריקה... זה ייקח כמה דקות")
+    import datetime
+    now = datetime.datetime.now(pytz.timezone("Asia/Jerusalem"))
+    if now.hour < 14:
+        recs = run_scan("IL")
+        msg = "🇮🇱 סריקת ת\"א\n\n" + format_message(recs) if recs else "🇮🇱 אין המלצות כרגע"
+    else:
+        recs = run_scan("US")
+        msg = "🇺🇸 סריקת ארה\"ב\n\n" + format_message(recs) if recs else "🇺🇸 אין המלצות כרגע"
+    if recs:
+        add_recommendation(recs)
+    await update.message.reply_text(msg)
+
+app = Application.builder().token(TOKEN).build()
+app.add_handler(CommandHandler("scan", scan_command))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("✅ בוט טלגרם פעיל!")
     app.run_polling(drop_pending_updates=True)
