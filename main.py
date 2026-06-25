@@ -504,6 +504,9 @@ async def scan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         recs = run_scan("US")
         msg = "🇺🇸 סריקת ארה\"ב\n\n" + format_message(recs) if recs else "🇺🇸 אין המלצות כרגע"
+    top = [r for r in recs if r["score"] >= 85]
+    if top:
+       recs = top
     if recs:
         add_recommendation(recs)
     await update.message.reply_text(msg)
