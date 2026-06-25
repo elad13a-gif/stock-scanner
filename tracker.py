@@ -123,7 +123,7 @@ def run_tracker():
         now = datetime.now(tz)
 
         # עדכון פתיחה ת"א ב-10:10
-        if now.hour == 10 and now.minute == 10 and not checked_opening_il:
+        if now.hour == 9 and now.minute == 40 and not checked_opening_il:
             send_opening_update()
             checked_opening_il = True
 

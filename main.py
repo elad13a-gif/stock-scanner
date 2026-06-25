@@ -372,7 +372,7 @@ def scan_israel():
         recs = run_scan("IL")
         top  = [r for r in recs if r["score"] >= 90]
         if top:
-            msg = "🇮🇱 10:00 — מניות עם ציון 90+\n\n" + format_message(top)
+            msg = "🇮🇱 09:30 — מניות עם ציון 90+\n\n" + format_message(top)
             add_recommendation(top)
         else:
             msg = "🇮🇱 10:00 — אין מניות עם ציון 90+ היום"
@@ -404,7 +404,7 @@ def run_scheduler():
         weekday = now.weekday()
         if weekday >= 5:
             return
-        if hour == 10 and minute == 0:
+        if hour == 9 and minute == 30:
             scan_israel()
         if hour == 16 and minute == 0:
             scan_usa()
