@@ -259,7 +259,7 @@ def run_scan(market="IL"):
         })
 
     results.sort(key=lambda x: x["score"], reverse=True)
-    top = results[:5]
+    top = [r for r in results if r["score"] >= 85][:5]
 
     print(f"\n5 המניות המובילות:")
     for i, r in enumerate(top, 1):
