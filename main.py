@@ -12,7 +12,7 @@ from scanner import analyze, tech_score, position, get_maya_events, STOP_LOSS, T
 import pytz
 from datetime import datetime
 
-TOKEN   = "8931673908:AAEAkLdaMDSobsY8VOO8gOsTPZzf7mBLy2E"
+TOKEN   = "8931673908:AAGw10DN3RG_9tyLujmE8b2UdzWlxcq-gzA"
 CHAT_ID = "840664684"
 
 # ══════════════════════════════════════════════════════
