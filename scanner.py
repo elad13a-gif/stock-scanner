@@ -250,7 +250,7 @@ def run_scan(market="IL"):
             **data,
             "score":       s,
             "invest":      amt,
-            "shares":      max(1, int(amt // data["price"])),
+            "shares":      max(1, int(amt // data["price"])) if data.get("price") and data["price"] > 0 else 1,
             "stop":        round(data["price"] * (1 - STOP_LOSS), 2),
             "target":      round(data["price"] * (1 + TARGET), 2),
             "maya_events": maya_events,
