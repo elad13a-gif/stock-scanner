@@ -117,25 +117,37 @@ def send_opening_update():
 def run_tracker():
     print("📍 מעקב מניות פעיל")
     checked_opening_il  = False
+    checked_opening_il2 = False
     checked_opening_us  = False
+    checked_opening_us2 = False
 
     while True:
         now = datetime.now(tz)
 
         # עדכון פתיחה ת"א ב-10:10
         if now.hour == 9 and now.minute == 40 and not checked_opening_il:
-            send_opening_update()
-            checked_opening_il = True
+           send_opening_update()
+           checked_opening_il = True
+
+        if now.hour == 10 and now.minute == 10 and not checked_opening_il2:
+           send_opening_update()
+           checked_opening_il2 = True
 
         # עדכון פתיחה ארה"ב ב-16:10
         if now.hour == 16 and now.minute == 10 and not checked_opening_us:
-            send_opening_update()
-            checked_opening_us = True
+           send_opening_update()
+           checked_opening_us = True
+
+        if now.hour == 16 and now.minute == 40 and not checked_opening_us2:
+           send_opening_update()
+           checked_opening_us2 = True
 
         # איפוס בסוף יום
         if now.hour == 18 and now.minute == 0:
             checked_opening_il = False
+            checked_opening_il2 = False
             checked_opening_us = False
+            checked_opening_us2 = False
             TRACKED.clear()
 
         # בדיקת התראות כל 5 דקות
